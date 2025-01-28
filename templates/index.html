@@ -14,11 +14,15 @@
             margin: 0;
             padding: 0;
             user-select: none; /* Disable text selection */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
         }
 
         .container {
+            transition: transform .3s;
             max-width: 600px;
-            margin: 50px auto;
             padding: 40px;
             background-color: #2a2a2a;
             border-radius: 12px;
@@ -42,7 +46,7 @@
             font-size: 1rem;
             border: 2px solid #444;
             border-radius: 8px;
-            width: 100%;
+            width: 95%;
             margin-top: 10px;
             background-color: #333;
             color: #fff;
@@ -164,7 +168,8 @@
             width: 24px;
             height: 24px;
             animation: spin 2s linear infinite;
-            margin: 0 auto;
+            display: inline-block;
+            vertical-align: middle;
         }
 
         @keyframes spin {
@@ -173,9 +178,7 @@
         }
 
         .container:hover {
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
-            transform: translateY(-5px);
-            transition: box-shadow 0.3s ease, transform 0.3s ease;
+            transform: scale(1.04);
         }
 
         button:focus {
@@ -185,12 +188,12 @@
     </head>
     <body>
         <div class="container">
-            <h1>YouTube Video Downloader</h1>
+            <h1><i class="fab fa-youtube icon"></i>MG Downloader</h1>
             <form id="download-form">
                 <label for="video-url">Enter YouTube Video URL:</label>
                 <input type="url" id="video-url" name="video_url"
                     placeholder="Enter URL" required>
-                <button type="submit" id="submit-button">Get Video Info</button>
+                <button type="submit" id="submit-button">Get Video</button>
             </form>
             <div id="message" class="message"></div>
 
@@ -241,9 +244,9 @@
             e.preventDefault();
             const videoUrl = videoUrlInput.value;
 
-            submitButton.innerHTML = 'Loading...';
+            submitButton.innerHTML = 'Loading... <div class="loading-spinner"></div>';
             submitButton.setAttribute('disabled', 'true');
-            submitButton.innerHTML += ' <div class="loading-spinner"></div>';
+            messageDiv.innerHTML = ''; // Clear previous messages
 
             fetch('/get_video_info', {
                 method: 'POST',
@@ -252,9 +255,14 @@
                 },
                 body: JSON.stringify({ video_url: videoUrl })
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
             .then(data => {
-                submitButton.innerHTML = 'Get Video Info';
+                submitButton.innerHTML = 'Get Video';
                 submitButton.removeAttribute('disabled');
 
                 if (data.error) {
@@ -273,7 +281,7 @@
             })
             .catch(error => {
                 messageDiv.innerHTML = `Error: ${error.message}`;
-                submitButton.innerHTML = 'Get Video Info';
+                submitButton.innerHTML = 'Get Video';
                 submitButton.removeAttribute('disabled');
             });
         });
@@ -281,6 +289,7 @@
         confirmDownloadBtn.addEventListener('click', () => {
             const videoUrl = videoUrlInput.value;
             progressContainer.style.display = 'block';
+            downloadStatus.innerHTML = 'Downloading... 0%'; // Reset download status
 
             fetch('/download', {
                 method: 'POST',
@@ -289,7 +298,12 @@
                 },
                 body: JSON.stringify({ video_url: videoUrl })
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.message) {
                     checkDownloadProgress();
@@ -302,7 +316,12 @@
 
         function checkDownloadProgress() {
             fetch('/get_download_progress')
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     const progress = data.progress;
                     progressBar.style.width = progress + '%';
